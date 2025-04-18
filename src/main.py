@@ -33,13 +33,14 @@ async def get_music(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(f"🔎 Searching YouTube for: {query}...")
 
     ydl_opts = {
-        'quiet': True,
-        'noplaylist': True,
-        'ffmpeg_location': FFMPEG_PATH,
-        'format': 'bestaudio/best',
-        'outtmpl': str(DOWNLOAD_DIR / '%(title)s.%(ext)s'),
-        'extract_flat': True,
-    }
+    'quiet': True,
+    'noplaylist': True,
+    'ffmpeg_location': FFMPEG_PATH,
+    'format': 'bestaudio/best',
+    'outtmpl': str(DOWNLOAD_DIR / '%(title)s.%(ext)s'),
+    'extract_flat': True,
+    'cookiefile': str(Path(__file__).resolve().parent.parent / 'cookies.txt'),  # Path to cookies.txt
+}
 
     try:
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
