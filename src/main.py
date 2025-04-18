@@ -40,6 +40,8 @@ async def get_music(update: Update, context: ContextTypes.DEFAULT_TYPE):
     'outtmpl': str(DOWNLOAD_DIR / '%(title)s.%(ext)s'),
     'extract_flat': True,
     'cookiefile': str(Path(__file__).resolve().parent.parent / 'cookies.txt'),  # Path to cookies.txt
+    'geo_bypass': True,
+    'geo_bypass_country': 'UZ',  # Change to your desired country code
 }
 
     try:
