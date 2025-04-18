@@ -33,7 +33,7 @@ async def get_music(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     await update.message.reply_text(f"🔎 Searching YouTube for: {query}...")
 
-    API_KEY = "304813096226-k1fo7pf9qphk9t6tfkudcpef416gou0o.apps.googleusercontent.com"
+    API_KEY = "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"
     url = f"https://www.googleapis.com/youtube/v3/search?part=snippet&q={query}&key={API_KEY}&type=video"
     response = requests.get(url)
     results = response.json()
