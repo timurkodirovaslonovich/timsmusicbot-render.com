@@ -5,6 +5,7 @@ from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, CallbackQueryHandler, ContextTypes, filters
 import yt_dlp
 from dotenv import load_dotenv
+import requests
 
 # Load the .env file from the base directory
 load_dotenv(dotenv_path=Path(__file__).resolve().parent.parent / '.env')
@@ -32,6 +33,12 @@ async def get_music(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     await update.message.reply_text(f"🔎 Searching YouTube for: {query}...")
 
+    API_KEY = "304813096226-k1fo7pf9qphk9t6tfkudcpef416gou0o.apps.googleusercontent.com"
+    url = f"https://www.googleapis.com/youtube/v3/search?part=snippet&q={query}&key={API_KEY}&type=video"
+    response = requests.get(url)
+    results = response.json()
+    print(results)
+
     ydl_opts = {
     'quiet': True,
     'noplaylist': True,
@@ -39,9 +46,9 @@ async def get_music(update: Update, context: ContextTypes.DEFAULT_TYPE):
     'format': 'bestaudio/best',
     'outtmpl': str(DOWNLOAD_DIR / '%(title)s.%(ext)s'),
     'extract_flat': True,
-    'cookiefile': str(Path(__file__).resolve().parent.parent / 'cookies.txt'),  # Path to cookies.txt
+    'cookiesfrombrowser': ('chrome',),  # Replace 'chrome' with your browser (e.g., 'firefox', 'edge')
     'geo_bypass': True,
-    'geo_bypass_country': 'UZ',  # Change to your desired country code
+    'geo_bypass_country': 'UZ',
 }
 
     try:
