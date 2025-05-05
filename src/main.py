@@ -3,6 +3,7 @@ from pathlib import Path
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, CallbackQueryHandler, ContextTypes, filters
 import yt_dlp
+import time
 
 BOT_TOKEN = "7738588776:AAG7ozt-0WipdnZQM8BDIxTwUWnNQ1kOeSA"
 
@@ -99,7 +100,7 @@ async def download_and_send(update: Update, context: ContextTypes.DEFAULT_TYPE):
     ydl_opts = {
         'quiet': True,
         'noplaylist': True,
-        'ffmpeg_location': 'C:/ffmpeg-7.1.1-essentials_build/bin',  # Confirm ffmpeg path
+        'ffmpeg_location': str(Path(__file__).resolve().parent / 'ffmpeg'),  # Path to ffmpeg binary
         'format': 'bestaudio/best',
         'outtmpl': str(DOWNLOAD_DIR / '%(title)s.%(ext)s'),
         'postprocessors': [{
@@ -130,6 +131,8 @@ async def download_and_send(update: Update, context: ContextTypes.DEFAULT_TYPE):
     except Exception as e:
         print(f"⚠️ Exception: {e}")
         await update.callback_query.message.reply_text(f"⚠️ Error: {str(e)}")
+
+    time.sleep(5)  # Add a 5-second delay between requests
 
 if __name__ == '__main__':
     app = ApplicationBuilder().token(BOT_TOKEN).build()
