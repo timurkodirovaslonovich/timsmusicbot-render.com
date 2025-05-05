@@ -4,6 +4,8 @@ from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, CallbackQueryHandler, ContextTypes, filters
 import yt_dlp
 import time
+import random
+from time import sleep
 
 BOT_TOKEN = "7738588776:AAG7ozt-0WipdnZQM8BDIxTwUWnNQ1kOeSA"
 
@@ -16,6 +18,10 @@ DOWNLOAD_DIR.mkdir(exist_ok=True)
 # Logging
 import logging
 logging.basicConfig(level=logging.INFO)
+
+# Add these constants
+MAX_RETRIES = 3
+RETRY_DELAY = 5
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("🎶 Send me the name of a song and I’ll show you the top 10 YouTube results to download!")
@@ -39,35 +45,51 @@ async def get_music(update: Update, context: ContextTypes.DEFAULT_TYPE):
         'format': 'bestaudio/best',
         'outtmpl': str(DOWNLOAD_DIR / '%(title)s.%(ext)s'),
         'extract_flat': True,  # Fetch only metadata without downloading
+        'geo_bypass': True,
+        'geo_bypass_country': 'US',
+        'ignoreerrors': True,
+        'no_warnings': True,
     }
 
-    try:
-        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            info = ydl.extract_info(f"ytsearch10:{query}", download=False)
-            results = info.get('entries', [])
+    for attempt in range(MAX_RETRIES):
+        try:
+            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                info = ydl.extract_info(f"ytsearch10:{query}", download=False)
+                results = info.get('entries', [])
 
-        # Debug: Log raw results
-        print(f"🔍 Raw results: {results}")
+            # Debug: Log raw results
+            print(f"🔍 Raw results: {results}")
 
-        # Filter out results without a valid 'url'
-        filtered_results = [result for result in results if 'url' in result]
+            # Filter out results without a valid 'url'
+            filtered_results = [result for result in results if 'url' in result]
 
-        if not filtered_results:
-            await update.message.reply_text("❌ No valid results found. Please try a different query.")
-            return
+            if filtered_results:
+                context.user_data['search_results'] = filtered_results
 
-        context.user_data['search_results'] = filtered_results
+                keyboard = [
+                    [InlineKeyboardButton(f"{i+1}. {result['title']}", callback_data=str(i))]
+                    for i, result in enumerate(filtered_results)
+                ]
+                reply_markup = InlineKeyboardMarkup(keyboard)
+                await update.message.reply_text("🎧 Choose a song to download:", reply_markup=reply_markup)
+                return
 
-        keyboard = [
-            [InlineKeyboardButton(f"{i+1}. {result['title']}", callback_data=str(i))]
-            for i, result in enumerate(filtered_results)
-        ]
-        reply_markup = InlineKeyboardMarkup(keyboard)
-        await update.message.reply_text("🎧 Choose a song to download:", reply_markup=reply_markup)
+            # If we get here, no results were found in this attempt
+            sleep_time = RETRY_DELAY * (attempt + 1)
+            print(f"⚠️ Attempt {attempt + 1} failed, waiting {sleep_time} seconds...")
+            await asyncio.sleep(sleep_time)
 
-    except Exception as e:
-        print(f"⚠️ Exception: {e}")
-        await update.message.reply_text(f"⚠️ Error: {str(e)}")
+        except Exception as e:
+            print(f"⚠️ Attempt {attempt + 1} failed with error: {str(e)}")
+            if "429" in str(e):  # Rate limit error
+                sleep_time = RETRY_DELAY * (attempt + 1) + random.uniform(1, 5)
+                print(f"🕒 Rate limited, waiting {sleep_time} seconds...")
+                await asyncio.sleep(sleep_time)
+            else:
+                break
+
+    # If we get here, all attempts failed
+    await update.message.reply_text("❌ Unable to fetch results. Please try again later.")
 
 async def download_and_send(update: Update, context: ContextTypes.DEFAULT_TYPE):
     index = int(update.callback_query.data)
@@ -98,30 +120,40 @@ async def download_and_send(update: Update, context: ContextTypes.DEFAULT_TYPE):
             'key': 'FFmpegExtractAudio',
             'preferredcodec': 'mp3',
             'preferredquality': '192',
-        }]
+        }],
+        'geo_bypass': True,
+        'geo_bypass_country': 'US',
+        'ignoreerrors': True,
+        'no_warnings': True,
     }
 
-    try:
-        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            info = ydl.extract_info(url, download=True)
-            raw_file = ydl.prepare_filename(info)
-            mp3_file = Path(raw_file).with_suffix('.mp3')
-            print(f"✅ Downloaded file path: {mp3_file}")
+    for attempt in range(MAX_RETRIES):
+        try:
+            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                info = ydl.extract_info(url, download=True)
+                raw_file = ydl.prepare_filename(info)
+                mp3_file = Path(raw_file).with_suffix('.mp3')
+                print(f"✅ Downloaded file path: {mp3_file}")
 
-        if not mp3_file.exists():
-            print("❌ File not found after download.")
-            await update.callback_query.message.reply_text("❌ File not found.")
-            return
+            if mp3_file.exists():
+                with mp3_file.open('rb') as f:
+                    await update.callback_query.message.reply_audio(audio=f, title=title)
+                    print("📤 File sent successfully.")
+                mp3_file.unlink(missing_ok=True)
+                return
 
-        with mp3_file.open('rb') as f:
-            await update.callback_query.message.reply_audio(audio=f, title=title)
-            print("📤 File sent successfully.")
+            sleep_time = RETRY_DELAY * (attempt + 1)
+            await asyncio.sleep(sleep_time)
 
-        mp3_file.unlink(missing_ok=True)
+        except Exception as e:
+            print(f"⚠️ Download attempt {attempt + 1} failed: {str(e)}")
+            if "429" in str(e):
+                sleep_time = RETRY_DELAY * (attempt + 1) + random.uniform(1, 5)
+                await asyncio.sleep(sleep_time)
+            else:
+                break
 
-    except Exception as e:
-        print(f"⚠️ Exception: {e}")
-        await update.callback_query.message.reply_text(f"⚠️ Error: {str(e)}")
+    await update.callback_query.message.reply_text("❌ Download failed. Please try again later.")
 
     time.sleep(5)  # Add a 5-second delay between requests
 
