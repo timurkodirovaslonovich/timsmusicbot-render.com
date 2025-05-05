@@ -1,26 +1,32 @@
-# filepath: tims-bot/src/main.py
 import os
 from pathlib import Path
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, CallbackQueryHandler, ContextTypes, filters
 import yt_dlp
-from dotenv import load_dotenv
-import requests
 
-# Load the .env file from the base directory
-load_dotenv(dotenv_path=Path(__file__).resolve().parent.parent / '.env')
+BOT_TOKEN = "7738588776:AAG7ozt-0WipdnZQM8BDIxTwUWnNQ1kOeSA"
 
-BOT_TOKEN = os.getenv("BOT_TOKEN")
-FFMPEG_PATH = os.getenv("FFMPEG_PATH")
 
+
+
+# Use pathlib for cross-platform paths
 DOWNLOAD_DIR = Path("downloads")
 DOWNLOAD_DIR.mkdir(exist_ok=True)
 
+
+
+
+# Logging
 import logging
 logging.basicConfig(level=logging.INFO)
 
+
+
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("🎶 Send me the name of a song and I’ll show you the top 10 YouTube results to download!")
+
+
+
 
 async def get_music(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.message.text.strip()
@@ -31,33 +37,27 @@ async def get_music(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("❌ Please send a song name, not a number.")
         return
 
+    # Acknowledge the request immediately
     await update.message.reply_text(f"🔎 Searching YouTube for: {query}...")
 
-    API_KEY = "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"
-    url = f"https://www.googleapis.com/youtube/v3/search?part=snippet&q={query}&key={API_KEY}&type=video"
-    response = requests.get(url)
-    results = response.json()
-    print(results)
-
     ydl_opts = {
-    'quiet': True,
-    'noplaylist': True,
-    'ffmpeg_location': FFMPEG_PATH,
-    'format': 'bestaudio/best',
-    'outtmpl': str(DOWNLOAD_DIR / '%(title)s.%(ext)s'),
-    'extract_flat': True,
-    'cookiesfrombrowser': ('chrome',),  # Replace 'chrome' with your browser (e.g., 'firefox', 'edge')
-    'geo_bypass': True,
-    'geo_bypass_country': 'UZ',
-}
+        'quiet': True,
+        'noplaylist': True,
+        'ffmpeg_location': 'C:/ffmpeg/bin',  # Adjust this path
+        'format': 'bestaudio/best',
+        'outtmpl': str(DOWNLOAD_DIR / '%(title)s.%(ext)s'),
+        'extract_flat': True,  # Fetch only metadata without downloading
+    }
 
     try:
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(f"ytsearch10:{query}", download=False)
             results = info.get('entries', [])
 
+        # Debug: Log raw results
         print(f"🔍 Raw results: {results}")
 
+        # Filter out results without a valid 'url'
         filtered_results = [result for result in results if 'url' in result]
 
         if not filtered_results:
@@ -87,7 +87,7 @@ async def download_and_send(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     track = results[index]
     title = track.get('title', 'Unknown Title')
-    url = track.get('url')
+    url = track.get('url')  # Use 'url' instead of 'webpage_url'
 
     if not url:
         await update.callback_query.answer("❌ Unable to download this track.")
@@ -99,7 +99,7 @@ async def download_and_send(update: Update, context: ContextTypes.DEFAULT_TYPE):
     ydl_opts = {
         'quiet': True,
         'noplaylist': True,
-        'ffmpeg_location': FFMPEG_PATH,
+        'ffmpeg_location': 'C:/ffmpeg-7.1.1-essentials_build/bin',  # Confirm ffmpeg path
         'format': 'bestaudio/best',
         'outtmpl': str(DOWNLOAD_DIR / '%(title)s.%(ext)s'),
         'postprocessors': [{
