@@ -7,27 +7,18 @@ import time
 
 BOT_TOKEN = "7738588776:AAG7ozt-0WipdnZQM8BDIxTwUWnNQ1kOeSA"
 
-
-
-
-# Use pathlib for cross-platform paths
-DOWNLOAD_DIR = Path("downloads")
+# At the top of the file, add a BASE_DIR constant
+BASE_DIR = Path(__file__).resolve().parent.parent
+FFMPEG_PATH = BASE_DIR / 'ffmpeg-7.1.1-essentials_build/bin'
+DOWNLOAD_DIR = BASE_DIR / 'downloads'
 DOWNLOAD_DIR.mkdir(exist_ok=True)
-
-
-
 
 # Logging
 import logging
 logging.basicConfig(level=logging.INFO)
 
-
-
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("🎶 Send me the name of a song and I’ll show you the top 10 YouTube results to download!")
-
-
-
 
 async def get_music(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.message.text.strip()
@@ -44,7 +35,7 @@ async def get_music(update: Update, context: ContextTypes.DEFAULT_TYPE):
     ydl_opts = {
         'quiet': True,
         'noplaylist': True,
-        'ffmpeg_location': 'ffmpeg-7.1.1-essentials_build/bin',  # Adjust this path
+        'ffmpeg_location': str(FFMPEG_PATH),  # Use the defined FFMPEG_PATH
         'format': 'bestaudio/best',
         'outtmpl': str(DOWNLOAD_DIR / '%(title)s.%(ext)s'),
         'extract_flat': True,  # Fetch only metadata without downloading
@@ -100,7 +91,7 @@ async def download_and_send(update: Update, context: ContextTypes.DEFAULT_TYPE):
     ydl_opts = {
         'quiet': True,
         'noplaylist': True,
-        'ffmpeg_location': str(Path(__file__).resolve().parent / 'ffmpeg-7.1.1-essentials_build'),  # Path to ffmpeg binary
+        'ffmpeg_location': str(FFMPEG_PATH),  # Use the defined FFMPEG_PATH
         'format': 'bestaudio/best',
         'outtmpl': str(DOWNLOAD_DIR / '%(title)s.%(ext)s'),
         'postprocessors': [{
