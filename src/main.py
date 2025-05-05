@@ -100,7 +100,7 @@ async def download_and_send(update: Update, context: ContextTypes.DEFAULT_TYPE):
     ydl_opts = {
         'quiet': True,
         'noplaylist': True,
-        'ffmpeg_location': str(Path(__file__).resolve().parent / 'ffmpeg'),  # Path to ffmpeg binary
+        'ffmpeg_location': str(Path(__file__).resolve().parent / 'ffmpeg-7.1.1-essentials_build'),  # Path to ffmpeg binary
         'format': 'bestaudio/best',
         'outtmpl': str(DOWNLOAD_DIR / '%(title)s.%(ext)s'),
         'postprocessors': [{
