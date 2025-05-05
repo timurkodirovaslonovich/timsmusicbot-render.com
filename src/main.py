@@ -44,7 +44,7 @@ async def get_music(update: Update, context: ContextTypes.DEFAULT_TYPE):
     ydl_opts = {
         'quiet': True,
         'noplaylist': True,
-        'ffmpeg_location': 'C:/ffmpeg/bin',  # Adjust this path
+        'ffmpeg_location': 'ffmpeg-7.1.1-essentials_build/bin',  # Adjust this path
         'format': 'bestaudio/best',
         'outtmpl': str(DOWNLOAD_DIR / '%(title)s.%(ext)s'),
         'extract_flat': True,  # Fetch only metadata without downloading
